@@ -137,6 +137,10 @@ public class ZWaveNode {
     @XStreamOmitField
     Long inclusionTimer = null;
 
+    // node KPIs
+    long last_rtt = 0;
+    long avg_rtt = 0;
+
     /**
      * Constructor. Creates a new instance of the ZWaveNode class.
      *
@@ -790,6 +794,13 @@ public class ZWaveNode {
      */
     public int getRetryCount() {
         return retryCount;
+    }
+
+    /**
+     * sets the last RTT of a successfull transaction with the node
+     */
+    public void setRTT(long rtt) {
+        last_rtt = rtt;
     }
 
     /**

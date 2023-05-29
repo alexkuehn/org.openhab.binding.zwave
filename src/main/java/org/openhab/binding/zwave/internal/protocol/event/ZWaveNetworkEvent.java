@@ -70,7 +70,8 @@ public class ZWaveNetworkEvent extends ZWaveEvent {
         FailedNode,
         RequestNetworkUpdate,
         RemoveFailedNodeID,
-        ReplaceFailedNode
+        ReplaceFailedNode,
+        UpdateStatistics
     }
 
     public enum State {

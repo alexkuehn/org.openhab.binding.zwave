@@ -1569,6 +1569,18 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
             if (networkEvent.getEvent() == ZWaveNetworkEvent.Type.DeleteNode) {
                 updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.NONE); // TODO: Update to THING_GONE
             }
+
+            // handle statistcs update event
+            if (networkEvent.getEvent() == ZWaveNetworkEvent.Type.UpdateStatistics) {
+                logger.debug("ALEX NODE {}: Got an statistics update event", nodeId);
+
+                ZWaveNode node = controllerHandler.getNode(networkEvent.getNodeId());
+                if (node == null) {
+                    return;
+                }
+                
+                updateProperty(ZWaveBindingConstants.PROPERTY_LASTRTT, node.getRTT().toString());
+            }
         }
 
         if (incomingEvent instanceof ZWaveDelayedPollEvent) {

@@ -39,7 +39,10 @@ import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveVersionComm
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveWakeUpCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.impl.CommandClassSecurityV1;
 import org.openhab.binding.zwave.internal.protocol.event.ZWaveEvent;
+import org.openhab.binding.zwave.internal.protocol.event.ZWaveNetworkEvent;
 import org.openhab.binding.zwave.internal.protocol.event.ZWaveNodeStatusEvent;
+import org.openhab.binding.zwave.internal.protocol.event.ZWaveNetworkEvent.State;
+import org.openhab.binding.zwave.internal.protocol.event.ZWaveNetworkEvent.Type;
 import org.openhab.binding.zwave.internal.protocol.initialization.ZWaveNodeInitStage;
 import org.openhab.binding.zwave.internal.protocol.initialization.ZWaveNodeInitStageAdvancer;
 import org.openhab.binding.zwave.internal.protocol.transaction.ZWaveCommandClassTransactionPayload;
@@ -801,8 +804,22 @@ public class ZWaveNode {
      */
     public void setRTT(long rtt) {
         last_rtt = rtt;
+
+        logger.debug("ALEX NODE {}: updated RTT with {}.", nodeId, last_rtt);
+        ZWaveEvent zEvent = new ZWaveNetworkEvent(Type.UpdateStatistics, getNodeId(), State.Success);
+        controller.notifyEventListeners(zEvent);
+        
     }
 
+    /**
+     * Gets the last Round Trip Time for an ZWave Request in ms
+     *
+     * @return last RTT
+     */
+    public long getRTT() {
+        return last_rtt;
+    }
+    
     /**
      * Increments the sent packet counter and records the last sent time
      * This is simply used for statistical purposes to assess the health

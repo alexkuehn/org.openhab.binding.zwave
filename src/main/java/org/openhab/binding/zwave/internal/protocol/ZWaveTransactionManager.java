@@ -690,6 +690,11 @@ public class ZWaveTransactionManager {
                             logger.debug("NODE {}: Response processed after {}ms", currentTransaction.getNodeId(),
                                     currentTransaction.getElapsedTime());
 
+                            ZWaveNode trnode = controller.getNode(currentTransaction.getNodeId());
+
+                            if( trnode != null ) {
+                                trnode.setRTT(currentTransaction.getElapsedTime());
+                            }
                             // Notify our users...
                             transactionCompleted = true;
                             break;

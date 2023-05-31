@@ -1579,7 +1579,7 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
                     return;
                 }
                 
-                updateProperty(ZWaveBindingConstants.PROPERTY_LASTRTT, node.getRTT().toString());
+                updateProperty(ZWaveBindingConstants.PROPERTY_LASTRTT, Long.toString(node.getRTT()));
             }
         }
 

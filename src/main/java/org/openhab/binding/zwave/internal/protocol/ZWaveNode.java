@@ -803,8 +803,15 @@ public class ZWaveNode {
      * sets the last RTT of a successfull transaction with the node
      */
     public void setRTT(long rtt) {
-        last_rtt = rtt;
+        last_rtt = rtt;        
 
+        if( avg_rtt == 0 ) {
+            avg_rtt = last_rtt;
+        } else {
+            double temp_avg = (avg_rtt + last_rtt) / 2;
+            avg_rtt = (long) temp_avg;
+        }
+        
         logger.debug("ALEX NODE {}: updated RTT with {}.", nodeId, last_rtt);
         ZWaveEvent zEvent = new ZWaveNetworkEvent(Type.UpdateStatistics, getNodeId(), State.Success);
         controller.notifyEventListeners(zEvent);
@@ -818,6 +825,15 @@ public class ZWaveNode {
      */
     public long getRTT() {
         return last_rtt;
+    }
+
+    /**
+     * Gets the average Round Trip Time for an ZWave Request in ms
+     *
+     * @return last RTT
+     */
+    public long getAvgRTT() {
+        return avg_rtt;
     }
     
     /**

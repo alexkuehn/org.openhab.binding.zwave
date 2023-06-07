@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.zwave.internal.protocol.serialmessage;
 
+import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,11 +76,32 @@ public class SendDataMessageClass extends ZWaveCommandProcessor {
             return false;
         }
 
+        
         ZWaveNode node = zController.getNode(transaction.getNodeId());
         if (node == null) {
             logger.debug("Node {} not found!", transaction.getNodeId());
             return false;
         }
+
+        if( zController.getActiveTXReporting() ) {
+            // controller API is configured for providing TX Reporting
+            // extract the TX Status and Report from payload and hand over for processing by node
+            logger.trace("KPIACQ: SendData received enhanced TX Report with length {}", incomingMessage.getMessagePayload().length);
+            logger.trace("KPIACQ SendData Payload Dump: {}", SerialMessage.bb2hex(incomingMessage.getMessagePayload()));
+
+
+            ByteArrayOutputStream resultByteBuffer = new ByteArrayOutputStream();
+
+            for(int i=1; i < incomingMessage.getMessagePayload().length; i++ ) {
+                resultByteBuffer.write( (byte) incomingMessage.getMessagePayloadByte(i) );
+            }
+
+            node.updateTXReport(resultByteBuffer.toByteArray());
+
+        } else {
+            logger.debug("KPIACQ SendData received wo enhanced TX report with length {}", incomingMessage.getMessagePayload().length);
+        }
+
 
         logger.debug("NODE {}: SendData Request. CallBack ID = {}, Status = {}({})", node.getNodeId(),
                 incomingMessage.getCallbackId(), status.getLabel(), status.getKey());

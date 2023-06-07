@@ -521,11 +521,22 @@ public class ZWaveTransactionManager {
                         int nodeId = incomingMessage.getMessagePayloadByte(1);
                         ZWaveNode node = controller.getNode(nodeId);
 
+            
                         if (node == null) {
                             logger.warn("NODE {}: Not initialized (ie node unknown), ignoring message.", nodeId);
                         } else {
+
+                            int rxrssi = incomingMessage.getMessagePayloadByte( incomingMessage.getMessagePayload().length-1);
+
+                            logger.trace("KPIACQ Application Command received with RSSI: {}", rxrssi);
+                            logger.trace("KPIACQ AppCommandHandler RX Report Dump: {}", SerialMessage.bb2hex(incomingMessage.getMessagePayload()));
+
+                            byte[] rssimsg = { (byte) rxrssi };
+                            node.updateRXReport(rssimsg);
+    
                             logger.debug("NODE {}: Application Command Request ({}:{})", nodeId,
                                     node.getNodeState().toString(), node.getNodeInitStage().toString());
+
 
                             List<ZWaveCommandClassPayload> commands;
                             try {

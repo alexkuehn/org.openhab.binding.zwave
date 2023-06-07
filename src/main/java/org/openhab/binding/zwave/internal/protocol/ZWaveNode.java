@@ -141,8 +141,41 @@ public class ZWaveNode {
     Long inclusionTimer = null;
 
     // node KPIs
-    long last_rtt = 0;
-    long avg_rtt = 0;
+    private static final int TRANSMIT_STATUS_FIELDS = 6;
+    private static final int ROUTER_DEPTH = 4;
+    private long last_rtt = 0;
+    private long avg_rtt = 0;
+
+    private long last_txrtt = 0;
+    private long avg_txrtt = 0;
+
+    private int last_ack_rssi = 0;
+    private int avgtemp_ack_rssi;
+    private int avg_ack_rssi = 0;
+
+    private int last_rx_rssi = 0;
+    private int avgtemp_rx_rssi = 0;
+    private int avg_rx_rssi = 0;
+
+    private int[] last_route_rssi = new int[ROUTER_DEPTH];
+    private int[] avgtemp_route_rssi = new int[ROUTER_DEPTH];
+    private int[] avg_route_rssi = new int[ROUTER_DEPTH];
+    
+
+    private int last_nr_repeaters = 0;
+    private int avg_nr_repeaters = 0;
+
+    private int last_att_routing = 0;
+    private int avg_att_routing = 0;
+
+    private byte last_func_router = 0;
+    private byte last_nonfunc_router = 0;
+
+    private byte[] last_router_chain = new byte[ROUTER_DEPTH];
+    private long[] transmit_status_count = new long[TRANSMIT_STATUS_FIELDS];
+
+    
+
 
     /**
      * Constructor. Creates a new instance of the ZWaveNode class.
@@ -812,12 +845,14 @@ public class ZWaveNode {
             avg_rtt = (long) temp_avg;
         }
         
-        logger.debug("ALEX NODE {}: updated RTT with {}.", nodeId, last_rtt);
+        logger.debug("KPIACQ NODE {}: updated RTT with {}.", nodeId, last_rtt);
         ZWaveEvent zEvent = new ZWaveNetworkEvent(Type.UpdateStatistics, getNodeId(), State.Success);
         controller.notifyEventListeners(zEvent);
         
     }
 
+
+     
     /**
      * Gets the last Round Trip Time for an ZWave Request in ms
      *
@@ -835,7 +870,290 @@ public class ZWaveNode {
     public long getAvgRTT() {
         return avg_rtt;
     }
+
+    /**
+     * normalize the encoded spezial RSSI values
+     * 
+     * @return int normalized RSSI
+     */
+
+    private int normalizeRSSI(byte in) {
+        int normalized_rssi = in;
+
+        if( in == 0x7f) {
+            normalized_rssi = 0;
+        }
+
+        if( in == 0x7E) {
+            normalized_rssi = 0;
+        }
+
+        if( in == 0x7D) {
+            normalized_rssi = -128;
+        }
+
+        return normalized_rssi;
+    }
+
+    /**
+     * update Node statistics with new TX report
+     * 
+     * @return
+     */
+    public void updateTXReport(byte[] reportmsg) {
+        logger.debug("KPIACQ for NODE {} updated TX report with length {}: {}", nodeId, reportmsg.length, SerialMessage.bb2hex(reportmsg));
+
+        byte txstatus = reportmsg[0];
+
+        // based on the TX status, the status counters are incremented
+        if( txstatus <= TRANSMIT_STATUS_FIELDS)
+        {
+            transmit_status_count[txstatus]++;
+        }
+
+        // extract the transmit RTT and calculate an average
+        last_txrtt = ((reportmsg[1] << 8) + reportmsg[2]) * 10;
+
+        if( avg_txrtt == 0 ) {
+            avg_txrtt = last_txrtt;
+        } else {
+            double temp_avg = (avg_txrtt + last_txrtt) / 2;
+            avg_txrtt = (long) temp_avg;
+        }
+
     
+        if( txstatus > 0)
+        {
+            // the transmit failed, update the fail related KPIs
+            last_func_router = reportmsg[18];
+            last_nonfunc_router = reportmsg[19];
+
+        } else {
+            // transmit suceeded, update the success related KPIs
+            last_ack_rssi = normalizeRSSI(reportmsg[4]);
+
+            if( (reportmsg[4] != 0x7F) ) {
+                if( avgtemp_ack_rssi == 0 ) {
+                    avgtemp_ack_rssi = last_ack_rssi;
+                } else {
+                    double temp_avg = (avgtemp_ack_rssi + last_ack_rssi) / 2;
+                    avgtemp_ack_rssi = (int) temp_avg;
+                    avg_ack_rssi = avgtemp_ack_rssi;
+                }
+            } else {
+                avg_ack_rssi = last_ack_rssi;
+            }
+
+            for( int i=0; i < ROUTER_DEPTH; i++ ) {
+    
+                last_route_rssi[i] = normalizeRSSI(reportmsg[5+i]);
+        
+                if( (reportmsg[5+i] != 0x7f) ) {
+                    if( avgtemp_route_rssi[i] == 0 ) {
+                        avgtemp_route_rssi[i] = last_route_rssi[i];
+                    } else {
+                        double temp_avg = (avgtemp_route_rssi[i] + last_route_rssi[i]) / 2;
+                        avgtemp_route_rssi[i] = (int) temp_avg;
+                        avg_route_rssi[i] = avgtemp_route_rssi[i];
+                    }
+                } else {
+                    avg_route_rssi[i] = last_route_rssi[i];
+                }
+    
+            }
+
+        }
+
+
+        last_nr_repeaters = reportmsg[3];
+        if( avg_nr_repeaters == 0 ) {
+            avg_nr_repeaters = last_nr_repeaters;
+        } else {
+            double temp_avg = (avg_nr_repeaters + last_nr_repeaters) / 2;
+            avg_nr_repeaters = (int) Math.ceil(temp_avg);
+        }
+
+        last_att_routing = reportmsg[17];
+        if( avg_att_routing == 0 ) {
+            avg_att_routing = last_att_routing;
+        } else {
+            double temp_avg = (avg_att_routing + last_att_routing) / 2;
+            avg_nr_repeaters = (int) temp_avg;
+        }
+
+        for( int i=0; i < ROUTER_DEPTH; i++ ) {
+            last_router_chain[i] = reportmsg[12+i];
+        }
+        ZWaveEvent zEvent = new ZWaveNetworkEvent(Type.UpdateStatistics, getNodeId(), State.Success);
+        controller.notifyEventListeners(zEvent);
+
+    }
+
+    /**
+     * update Node statistics with new RX report
+     * 
+     * @return
+     */
+    public void updateRXReport(byte[] reportmsg) {
+        logger.debug("KPIACQ for NODE {} updated RX report with length {}: {}", nodeId, reportmsg.length, SerialMessage.bb2hex(reportmsg));
+
+        last_rx_rssi = normalizeRSSI(reportmsg[0]);
+        
+        if( reportmsg[0] != 0x7f) {
+            if( avgtemp_rx_rssi == 0 ) {
+                avgtemp_rx_rssi = last_rx_rssi;
+            } else {
+                double temp_avg = (avgtemp_rx_rssi + last_rx_rssi) / 2;
+                avgtemp_rx_rssi = (int) temp_avg;
+                avg_rx_rssi = avgtemp_rx_rssi;
+            }
+        } else {
+            avg_rx_rssi = last_rx_rssi;
+        }
+
+
+        ZWaveEvent zEvent = new ZWaveNetworkEvent(Type.UpdateStatistics, getNodeId(), State.Success);
+        controller.notifyEventListeners(zEvent);
+
+    }
+
+    /**
+     * get the transmit status counters
+     * 
+     * @return long[] arary of status counters
+     */
+    public long[] getTransmitStatusCounters() {
+        return transmit_status_count;
+    }
+    
+    /**
+     * get the last transmit RTT
+     * 
+     * @return long last measured TX RTT
+     */
+    public long getLastTxRTT() {
+        return last_txrtt;
+    }
+
+    /**
+     * get the average transmit RTT
+     * 
+     * @return long averaged TX RTT
+     */
+    public long getAvgTxRTT() {
+        return avg_txrtt;
+    }
+
+    /**
+     * get the last ACK RSSI
+     * 
+     * @return int last ACK RSSI
+     */
+    public int getLastAckRSSI() {
+        return last_ack_rssi;
+    }
+
+    /**
+     * get the average ACK RSSI
+     * 
+     * @return int average ACK RSSI
+     */
+    public int getAvgAckRSSI() {
+        return avg_ack_rssi;
+    }
+
+    /**
+     * get the last RX RSSI
+     * 
+     * @return int last RX RSSI
+     */
+    public int getLastRXRSSI() {
+        return last_rx_rssi;
+    }
+
+    /**
+     * get the Average RX RSSI
+     * 
+     * @return int avg RX RSSI
+     */
+    public int getAvgRXRSSI() {
+        return avg_rx_rssi;
+    }
+
+    /**
+     * get the last route RSSI vector
+     * 
+     * @return int[] last route RSSI array
+     */
+    public int[] getLastRouteRSSI() {
+        return last_route_rssi;
+    }
+
+    /**
+     * get the average route RSSI vector
+     * 
+     * @return int[] average route RSSI array
+     */
+    public int[] getAvgRouteRSSI() {
+        return avg_route_rssi;
+    }
+
+    /**
+     * get the last number of repeaters
+     * 
+     * @return int get the last number of repeaters
+     */
+    public int getLastNrRepeaters() {
+        return last_nr_repeaters;
+    }
+
+    /**
+     * get the average number of repeaters
+     * 
+     * @return int get the average number of repeaters
+     */
+    public int getAvgNrRepeaters() {
+        return avg_nr_repeaters;
+    }
+
+    /**
+     * get the last amount of routing attempts
+     * 
+     * @return int get the last amount of routing attempts
+     */
+    public int getLastRoutingAttempts() {
+        return last_att_routing;
+    }
+
+    /**
+     * get the average amount of routing attempts
+     * 
+     * @return int get the average amount of routing attempts
+     */
+    public int getAvgRoutingAttempts() {
+        return avg_att_routing;
+    }
+
+    /**
+     * get the last failed routing chain vector
+     * 
+     * @return byte[] get the fail in routing chain vector
+     */
+    public byte[] getFailedRoutingVector() {
+        byte[] failvec = { last_func_router, last_nonfunc_router};
+        return failvec;
+    }
+
+    /**
+     * get the last  routing chain
+     * 
+     * @return byte[] get the last routing chain
+     */
+    public byte[] getLastRoutingChain() {
+        return last_router_chain;
+    }
+
+
     /**
      * Increments the sent packet counter and records the last sent time
      * This is simply used for statistical purposes to assess the health

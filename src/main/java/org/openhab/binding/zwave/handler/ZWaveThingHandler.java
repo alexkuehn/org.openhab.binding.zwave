@@ -84,6 +84,8 @@ import org.openhab.core.types.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.swagger.v3.oas.models.security.SecurityScheme.In;
+
 /**
  * Thing Handler for ZWave devices
  *
@@ -1572,15 +1574,42 @@ public class ZWaveThingHandler extends ConfigStatusThingHandler implements ZWave
 
             // handle statistcs update event
             if (networkEvent.getEvent() == ZWaveNetworkEvent.Type.UpdateStatistics) {
-                logger.debug("ALEX NODE {}: Got an statistics update event", nodeId);
+                logger.trace("KPIACQ NODE {}: Got an statistics update event", nodeId);
 
                 ZWaveNode node = controllerHandler.getNode(networkEvent.getNodeId());
                 if (node == null) {
                     return;
                 }
                 
-                updateProperty(ZWaveBindingConstants.PROPERTY_LASTRTT, Long.toString(node.getRTT()));
-                updateProperty(ZWaveBindingConstants.PROPERTY_AVGRTT, Long.toString(node.getAvgRTT()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_RTT, Long.toString(node.getRTT()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_RTT, Long.toString(node.getAvgRTT()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_TX_RTT, Long.toString(node.getLastTxRTT()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_TX_RTT, Long.toString(node.getAvgTxRTT()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_ACK_RSSI, Integer.toString(node.getLastAckRSSI()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_ACK_RSSI, Integer.toString(node.getAvgAckRSSI()));
+            /* 
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_RX_RSSI, Integer.toString(node.getLastRXRSSI()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_RX_RSSI, Integer.toString(node.getAvgRXRSSI()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_ROUTE_RSSI, Arrays.toString(node.getLastRouteRSSI()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_ROUTE_RSSI, Arrays.toString(node.getAvgRouteRSSI()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_NR_REPEATER, Integer.toString(node.getLastNrRepeaters()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_NR_REPEATER, Integer.toString(node.getAvgNrRepeaters()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_ATT_ROUTING, Integer.toString(node.getLastRoutingAttempts()));
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_AVG_ATT_ROUTING, Integer.toString(node.getAvgRoutingAttempts()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_FAIL_ROUTE, Arrays.toString(node.getFailedRoutingVector()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_LAST_CHAIN_ROUTE, Arrays.toString(node.getLastRoutingChain()));
+
+                updateProperty(ZWaveBindingConstants.PROPERTY_STAT_TRANSMIT_COUNTERS, Arrays.toString(node.getTransmitStatusCounters()));
+            */
+
+
             }
         }
 

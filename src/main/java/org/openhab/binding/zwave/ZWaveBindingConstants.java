@@ -88,9 +88,25 @@ public class ZWaveBindingConstants {
     public final static String PROPERTY_LASTWAKEUP = "zwave_lastwakeup";
     public final static String PROPERTY_USINGSECURITY = "zwave_secure";
     public final static String PROPERTY_LASTHEAL = "zwave_lastheal";
-    public final static String PROPERTY_LASTRTT ="zwave_lastrtt";
-    public final static String PROPERTY_AVGRTT ="zwave_average_rtt";
+    public final static String PROPERTY_STAT_LAST_RTT ="zwave_stat_last_rtt";
+    public final static String PROPERTY_STAT_AVG_RTT ="zwave_stat_average_rtt";
+    public final static String PROPERTY_STAT_LAST_TX_RTT ="zwave_stat_tx_last_rtt";
+    public final static String PROPERTY_STAT_AVG_TX_RTT ="zwave_stat_tx_average_rtt";
+    public final static String PROPERTY_STAT_LAST_ACK_RSSI ="zwave_stat_last_ack_rssi";
+    public final static String PROPERTY_STAT_AVG_ACK_RSSI ="zwave_stat_average_ack_rssi";
+    public final static String PROPERTY_STAT_LAST_RX_RSSI ="zwave_stat_last_rx_rssi";
+    public final static String PROPERTY_STAT_AVG_RX_RSSI ="zwave_stat_average_rx_rssi";
+    public final static String PROPERTY_STAT_LAST_ROUTE_RSSI ="zwave_stat_last_route_rssi";
+    public final static String PROPERTY_STAT_AVG_ROUTE_RSSI ="zwave_stat_average_route_rssi";
+    public final static String PROPERTY_STAT_LAST_NR_REPEATER ="zwave_stat_last_nr_repeaters";
+    public final static String PROPERTY_STAT_AVG_NR_REPEATER ="zwave_stat_average_nr_repeaters";
+    public final static String PROPERTY_STAT_LAST_ATT_ROUTING ="zwave_stat_last_attempts_route";
+    public final static String PROPERTY_STAT_AVG_ATT_ROUTING ="zwave_stat_average_attempts_route";
+    public final static String PROPERTY_STAT_LAST_FAIL_ROUTE ="zwave_stat_last_fail_route";
+    public final static String PROPERTY_STAT_LAST_CHAIN_ROUTE ="zwave_stat_last_chain_route";
+    public final static String PROPERTY_STAT_TRANSMIT_COUNTERS ="zwave_stat_transmit_counters";
     
+
 
     public final static String CHANNEL_SERIAL_SOF = "serial_sof";
     public final static String CHANNEL_SERIAL_ACK = "serial_ack";

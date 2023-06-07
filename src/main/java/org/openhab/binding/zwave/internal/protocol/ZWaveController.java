@@ -60,6 +60,7 @@ import org.openhab.binding.zwave.internal.protocol.serialmessage.SerialApiGetIni
 import org.openhab.binding.zwave.internal.protocol.serialmessage.SerialApiSetTimeoutsMessageClass;
 import org.openhab.binding.zwave.internal.protocol.serialmessage.SerialApiSoftResetMessageClass;
 import org.openhab.binding.zwave.internal.protocol.serialmessage.SetSucNodeMessageClass;
+import org.openhab.binding.zwave.internal.protocol.serialmessage.SetupApiMessageClass;
 import org.openhab.binding.zwave.internal.protocol.serialmessage.ZWaveCommandProcessor;
 import org.openhab.binding.zwave.internal.protocol.transaction.ZWaveCommandClassTransactionPayload;
 import org.slf4j.Logger;
@@ -108,6 +109,9 @@ public class ZWaveController {
     private ZWaveInclusionController inclusionController = null;
     private int defaultWakeupPeriod = 0;
     private int maxAwakePeriod;
+
+    private boolean hasTXReportCap = false;
+    private boolean activeTXReport = false;
 
     private final ZWaveTransactionManager transactionManager = new ZWaveTransactionManager(this);
 
@@ -323,10 +327,34 @@ public class ZWaveController {
                 // Wait for all threads to complete starting initialisation before we advise the system
                 new ZWaveInitWaitThread(initList).start();
                 break;
+            case SetupApi:
+                int processedSubCmd = ((SetupApiMessageClass) processor).getProcessedSubcommand();
+
+                switch( processedSubCmd ) {
+                    case SetupApiMessageClass.SETUPAPI_SUBCMD_QUERY:
+                        // we got the serial API capabilties and check if we have TX Status Report support
+                        hasTXReportCap = ((SetupApiMessageClass) processor).getSerialApiSupportTxReport();
+                        // when the controller supports the extended TX Report, we try to activate it
+                        if( hasTXReportCap )
+                        {
+                            // lets enable the TX Status Report
+                            enqueue(new SetupApiMessageClass().doRequestSetTXReport(true));
+                        }
+                        break;
+                    case SetupApiMessageClass.SETUPAPI_SUBCMD_TXREPORT:
+                        // TXReport Enable response
+                        activeTXReport = ((SetupApiMessageClass) processor).getSerialApiTxReportEnabled();
+                        logger.debug("KPIACQ TX Status Enablement processed: {} ", activeTXReport);
+                        break;
+                    default:
+                        break;
+                }
+        
             default:
                 break;
         }
     }
+
 
     /**
      * Gets the home ID associated with the controller.
@@ -646,6 +674,8 @@ public class ZWaveController {
         enqueue(new SerialApiGetCapabilitiesMessageClass().doRequest());
         enqueue(new SerialApiSetTimeoutsMessageClass().doRequest(150, 15));
         enqueue(new GetSucNodeIdMessageClass().doRequest());
+        // start the querying of Serial API capabilities
+        enqueue(new SetupApiMessageClass().doRequestQuery());
     }
 
     /**
@@ -1117,4 +1147,14 @@ public class ZWaveController {
     public String getSecurityKey() {
         return networkSecurityKey;
     }
+
+    /**
+     * gets the status of enhanced TX status reports
+     *
+     * @return true: enhanced TX status reports active
+     */
+    public boolean getActiveTXReporting() {
+        return activeTXReport;
+    }
+
 }
